@@ -1,0 +1,3 @@
+/home/bm/Banque/build/CMakeFiles/Banque.dir
+/home/bm/Banque/build/CMakeFiles/edit_cache.dir
+/home/bm/Banque/build/CMakeFiles/rebuild_cache.dir

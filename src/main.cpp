@@ -72,17 +72,21 @@ int main() {
     // ========================================================================
     
     const int NB_COMPTES = 3;
-    const double SOLDE_INITIAL = 500000.0;  // 500 000 FCFA
+    const double SOLDE_INITIAL = 500000.0;  
     
     std::cout << "Création des comptes..." << std::endl;
     
-    // Créer les 3 comptes avec soldes initiaux
-    Compte c1(1, SOLDE_INITIAL);
-    Compte c2(2, SOLDE_INITIAL);
-    Compte c3(3, SOLDE_INITIAL);
+    // Créer les comptes dynamiquement
+    std::vector<Compte> comptes_vec;
+    for (int i = 1; i <= NB_COMPTES; i++) {
+        comptes_vec.emplace_back(i, SOLDE_INITIAL);
+    }
     
     // Créer un tableau de pointeurs vers ces comptes
-    Compte* tab_comptes[NB_COMPTES] = {&c1, &c2, &c3};
+    std::vector<Compte*> tab_comptes;
+    for (auto& c : comptes_vec) {
+        tab_comptes.push_back(&c);
+    }
     
     std::cout << "\n";
     
@@ -95,11 +99,10 @@ int main() {
     
     std::cout << "Création des agences..." << std::endl;
     
-    // Créer les 4 agences
-    Agence agence1(1, tab_comptes, NB_COMPTES, NB_OPERATIONS_PAR_AGENCE);
-    Agence agence2(2, tab_comptes, NB_COMPTES, NB_OPERATIONS_PAR_AGENCE);
-    Agence agence3(3, tab_comptes, NB_COMPTES, NB_OPERATIONS_PAR_AGENCE);
-    Agence agence4(4, tab_comptes, NB_COMPTES, NB_OPERATIONS_PAR_AGENCE);
+    std::vector<Agence> agences;
+    for (int i = 1; i <= NB_AGENCES; i++) {
+        agences.emplace_back(i, tab_comptes.data(), NB_COMPTES, NB_OPERATIONS_PAR_AGENCE);
+    }
     
     std::cout << "\n";
     
@@ -108,51 +111,44 @@ int main() {
     // ========================================================================
     
     afficherSeparateur("DÉBUT DES OPÉRATIONS");
-    
-    // Créer les 4 threads (un par agence)
-    // Chaque thread exécute la méthode run() de son agence
-    std::thread t1(&Agence::run, &agence1);
-    std::thread t2(&Agence::run, &agence2);
-    std::thread t3(&Agence::run, &agence3);
-    std::thread t4(&Agence::run, &agence4);
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < NB_AGENCES; i++) {
+        threads.emplace_back(&Agence::run, &agences[i]);
+    }
     
     // ========================================================================
     // ÉTAPE 4 : ATTENDRE LA FIN DE TOUS LES THREADS
     // ========================================================================
     
-    // join() = "Attends que ce thread se termine avant de continuer"
-    t1.join();
-    t2.join();
-    t3.join();
-    t4.join();
-    
+ for (auto& T : threads) {
+        T.join();
+    }
+
     afficherSeparateur("FIN DES OPÉRATIONS");
     
     // ========================================================================
     // ÉTAPE 5 : AFFICHER LES STATISTIQUES DES AGENCES
     // ========================================================================
     
-    std::cout << "\n";
-    agence1.afficherStatistiques();
-    std::cout << "\n";
-    agence2.afficherStatistiques();
-    std::cout << "\n";
-    agence3.afficherStatistiques();
-    std::cout << "\n";
-    agence4.afficherStatistiques();
-    std::cout << "\n";
+
+    for (int i = 0; i < NB_AGENCES; i++) {
+        agences[i].afficherStatistiques();
+        std::cout << "\n";
+    }
     
     // ========================================================================
     // ÉTAPE 6 : AFFICHER LES SOLDES FINAUX
     // ========================================================================
+
+    afficherSoldesFinaux(tab_comptes.data(), NB_COMPTES);
     
-    afficherSoldesFinaux(tab_comptes, NB_COMPTES);
     
     // ========================================================================
     // FIN DU PROGRAMME
     // ========================================================================
     
-    std::cout << "\n✓ Programme terminé avec succès !" << std::endl;
+    std::cout << "\n Programme terminé avec succès !" << std::endl;
     
     return 0;
 }

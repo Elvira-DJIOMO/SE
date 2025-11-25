@@ -25,12 +25,5 @@ add_executable(Banque ${SOURCES})
 
 # Lier pthread (pour les threads)
 target_link_libraries(Banque pthread)
-```
 
-**Changements** : 
-- Supprimé toute référence à Qt6
-- Simplifié au maximum
-- Garde juste pthread pour les threads
-
----
 
