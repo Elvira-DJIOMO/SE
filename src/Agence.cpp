@@ -3,6 +3,8 @@
 #include "GenerateurPoisson.h"
 #include <sstream>
 #include <iomanip>
+#include <thread>    // pour this thread
+#include <chrono>
 #include <cstdlib>   // Pour rand()
 #include <ctime>     // Pour time()
 
@@ -61,7 +63,7 @@ Operation Agence::genererOperation() {
     if (op.type == VIREMENT) {
         int index_dest;
         
-        // Boucle pour s'assurer que destination differente de source
+        // Boucle pour s'assurer que la destination est differente de la source
         do {
             index_dest = rand() % nb_comptes;
         } while (index_dest == index_source && nb_comptes > 1);
@@ -76,9 +78,9 @@ Operation Agence::genererOperation() {
     // ÉTAPE 3 : Générer un MONTANT aléatoire
     
     if (op.type != CONSULTATION) {
-        // Montant entre 1 000 et 150 000 FCFA
-        int montant_min = 1000;
-        int montant_max = 150000;
+        // Montant entre 100000 et 150 000 FCFA
+        int montant_min = 100000;
+        int montant_max = 250000;
         
         op.montant = montant_min + (rand() % (montant_max - montant_min + 1));
     } else {
@@ -154,7 +156,7 @@ void Agence::run() {
        << nb_operations << " opérations prévues)";
     logMessage(ss.str(), true);
     
-    // Créer le générateur de Poisson avec λ = 2.0
+    // Créer le générateur de Poisson avec lambda = 2.0
     GenerateurPoisson poisson(2.0);
     
     // BOUCLE PRINCIPALE : Effectuer les opérations
@@ -167,10 +169,28 @@ void Agence::run() {
         executerOperation(op);
         
         // Étape 3 : Attendre un intervalle aléatoire (loi de Poisson) Sauf pour la dernière opération (pas besoin d'attendre après)
-        if (i < nb_operations - 1) {
+
+        /*if (i < nb_operations - 1) {
             poisson.attendreIntervalle();
-        }
+        }*/
+       if (i < nb_operations - 1) { // i doit au plus etre egal a l'avant derniere operation.
+
+    // Calculer l'intervalle AVANT d'attendre (pour l'afficher et permettre de visualiser poisson)
+    double intervalle = poisson.genererIntervalle();
+    
+    // LOG : Affichage du temps de pause
+    std::stringstream ss_pause;
+    ss_pause << "[Agence " << id_agence << "] Pause de " 
+             << std::fixed << std::setprecision(3) 
+             << intervalle << " secondes";
+    logMessage(ss_pause.str(), true);
+    
+    // faire la pause
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(static_cast<int>(intervalle * 1000))
+    );
     }
+  }
     
     // Message de fin
     std::stringstream ss_fin;

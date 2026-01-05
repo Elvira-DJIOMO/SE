@@ -26,7 +26,7 @@ std::mutex& Compte::getMutex() {
     return mutex_compte;
 }
 
-// Consultation du solde (thread-safe)
+// Consultation du solde (thread-safe grace au mutex global du compte)
 bool Compte::consulter(double& solde_actuel) {
     std::lock_guard<std::mutex> lock(mutex_compte);
     
@@ -45,8 +45,8 @@ bool Compte::deposer(double montant) {
     if (montant <= 0) {
         std::stringstream ss;
         ss << "Dépôt refusé - Compte " << id 
-           << " : Montant invalide (" << montant << " FCFA)";
-        logMessage(ss.str(), false);
+           << " : Montant négatif invalide (" << montant << " FCFA) essayez de faire un retrait de la valeur absolue du montant";
+        logMessage(ss.str(), false); // tout ceci pour eviter les ambiguités quant à la nature de l'opération initiée.
         return false;
     }
     
@@ -68,8 +68,8 @@ bool Compte::retirer(double montant) {
     if (montant <= 0) {
         std::stringstream ss;
         ss << "Retrait refusé - Compte " << id 
-           << " : Montant invalide (" << montant << " FCFA)";
-        logMessage(ss.str(), false);
+           << " : Montant négatif invalide (" << montant << " FCFA) essayez un dépot de la valeur absolue du montant";
+        logMessage(ss.str(), false); // on n'accepte que des quantités positives.
         return false;
     }
     
@@ -81,7 +81,7 @@ bool Compte::retirer(double montant) {
         ss << "Retrait refusé - Compte " << id 
            << " : Solde insuffisant (Disponible : " 
            << std::fixed << std::setprecision(2) << solde 
-           << " FCFA, Demandé : " << montant << " FCFA)";
+           << " FCFA, Montant demandé : " << montant << " FCFA)";
         logMessage(ss.str(), false);
         return false;
     }
@@ -117,8 +117,7 @@ bool Compte::virement(Compte& source, Compte& destination, double montant) {
         return false;
     }
     
-    // ORDRE GLOBAL : Toujours locker dans l'ordre croissant des IDs
-    // Cela évite les deadlocks lors de virements croisés
+    // ORDRE GLOBAL : Toujours locker dans l'ordre croissant des IDs, cela évite les deadlocks lors de virements croisés
     Compte* premier = nullptr;
     Compte* second = nullptr;
     
@@ -137,11 +136,11 @@ bool Compte::virement(Compte& source, Compte& destination, double montant) {
     // Vérifier si le solde source est suffisant
     if (source.solde < montant) {
         std::stringstream ss;
-        ss << "Virement refusé - Compte " << source.getId() 
-           << " → Compte " << destination.getId() 
-           << " : Solde insuffisant (Disponible : " 
+        ss << "Virement du Compte " << source.getId() 
+           << " vers le Compte " << destination.getId() 
+           << " REFUSE : Solde insuffisant (Disponible : " 
            << std::fixed << std::setprecision(2) << source.solde 
-           << " FCFA, Demandé : " << montant << " FCFA)";
+           << " FCFA, Montant demandé : " << montant << " FCFA)";
         logMessage(ss.str(), false);
         return false;
     }
@@ -151,11 +150,11 @@ bool Compte::virement(Compte& source, Compte& destination, double montant) {
     destination.solde += montant;
     
     std::stringstream ss;
-    ss << "Virement réussi - Compte " << source.getId() 
-       << " → Compte " << destination.getId() 
-       << " : " << std::fixed << std::setprecision(2) << montant << " FCFA"
-       << " (Soldes : C" << source.getId() << "=" << source.solde 
-       << " FCFA, C" << destination.getId() << "=" << destination.solde << " FCFA)";
+    ss << "Virement du Compte " << source.getId() 
+       << "vers le Compte " << destination.getId() 
+       << " REUSSI. Montant de la transaction: " << std::fixed << std::setprecision(2) << montant << " FCFA"
+       << " (Soldes actuels: Compte " << source.getId() << "nouveau solde =" << source.solde 
+       << " FCFA, Compte" << destination.getId() << " nouveau solde =" << destination.solde << " FCFA)";
     logMessage(ss.str(), true);
     
     return true;
